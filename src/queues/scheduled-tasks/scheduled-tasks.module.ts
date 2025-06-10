@@ -15,4 +15,4 @@ import { TasksModule } from '../../modules/tasks/tasks.module';
   providers: [OverdueTasksService],
   exports: [OverdueTasksService],
 })
-export class ScheduledTasksModule {} 
+export class ScheduledTasksModule {}
