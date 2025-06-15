@@ -7,11 +7,11 @@ import { tasks } from './seed-data/tasks.seed';
 
 // Load environment variables
 config();
-
+console.log(process.env.DB_HOST);
 // Define the data source
 const AppDataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || 'postgres',
   port: parseInt(process.env.DB_PORT || '5432', 10),
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',

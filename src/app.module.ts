@@ -10,12 +10,16 @@ import { AuthModule } from './modules/auth/auth.module';
 import { TaskProcessorModule } from './queues/task-processor/task-processor.module';
 import { ScheduledTasksModule } from './queues/scheduled-tasks/scheduled-tasks.module';
 import { CacheService } from './common/services/cache.service';
+import jwtConfig from '@config/jwt.config';
+import bullConfig from '@config/bull.config';
+import databaseConfig from '@config/database.config';
 
 @Module({
   imports: [
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
+      load: [jwtConfig, bullConfig, databaseConfig],
     }),
 
     // Database
@@ -24,14 +28,14 @@ import { CacheService } from './common/services/cache.service';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get('DB_HOST'),
-        port: configService.get('DB_PORT'),
-        username: configService.get('DB_USERNAME'),
-        password: configService.get('DB_PASSWORD'),
-        database: configService.get('DB_DATABASE'),
+        host: configService.get('database.host'),
+        port: configService.get('database.port'),
+        username: configService.get('database.username'),
+        password: configService.get('database.password'),
+        database: configService.get('database.database'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development',
-        logging: configService.get('NODE_ENV') === 'development',
+        synchronize: configService.get('database.synchronize') === 'development',
+        logging: configService.get('database.logging') === 'development',
       }),
     }),
 
@@ -43,10 +47,7 @@ import { CacheService } from './common/services/cache.service';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get('REDIS_HOST'),
-          port: configService.get('REDIS_PORT'),
-        },
+        connection: configService.get('bull.connection'),
       }),
     }),
 
@@ -69,7 +70,7 @@ import { CacheService } from './common/services/cache.service';
 
     // Queue processing modules
     TaskProcessorModule,
-    ScheduledTasksModule,
+    // ScheduledTasksModule,
   ],
   providers: [
     // Inefficient: Global cache service with no configuration options
