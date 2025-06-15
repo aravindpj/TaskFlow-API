@@ -111,10 +111,19 @@ export class UsersService {
   async remove(id: string): Promise<void> {
     this.logger.log(`Attempting to remove user with ID: ${id}`);
 
-    const user = await this.usersRepository.findOne({ where: { id } });
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['tasks'],
+    });
+
     if (!user) {
       this.logger.warn(`User with ID ${id} not found`);
       throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    if (user.tasks && user.tasks.length > 0) {
+      this.logger.warn(`User with ID ${id} has assigned tasks and cannot be deleted`);
+      throw new BadRequestException(`User with ID ${id} has assigned tasks and cannot be deleted`);
     }
 
     await this.usersRepository.remove(user);
