@@ -44,7 +44,7 @@ interface RequestWithUser extends Request {
 @ApiTags('tasks')
 @Controller('tasks')
 @UseGuards(JwtAuthGuard, RateLimitGuard) // Apply JwtAuthGuard and RateLimitGuard globally for the controller
-@RateLimit({ limit: 100, windowMs: 60000 }) // Example rate limit
+@RateLimit({ limit: 20, windowMs: 60000 }) // Example rate limit
 @ApiBearerAuth()
 @UseInterceptors(ClassSerializerInterceptor) // Ensures DTO transformations are applied
 export class TasksController {
@@ -62,6 +62,7 @@ export class TasksController {
   }
 
   @Get()
+  // Example rate limit
   @ApiOperation({ summary: 'List tasks with filtering and pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
