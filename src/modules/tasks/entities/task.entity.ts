@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../users/entities/user.entity'; // Adjust path
 import { TaskStatus } from '../enums/task-status.enum';
 import { TaskPriority } from '../enums/task-priority.enum';
 
@@ -42,7 +42,7 @@ export class Task {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @ManyToOne(() => User, user => user.tasks)
+  @ManyToOne(() => User, user => user.tasks, { eager: false }) // Set eager to false for better control
   @JoinColumn({ name: 'user_id' })
   user: User;
 

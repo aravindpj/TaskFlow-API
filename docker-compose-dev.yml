@@ -1,0 +1,38 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+      - redis
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      - POSTGRES_USER = ${DB_USERNAME}
+      - POSTGRES_PASSWORD = ${DB_PASSWORD}
+      - POSTGRES_DB = ${DB_DATABASE}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis/redis-stack:latest
+    container_name: redis-stack
+    ports:
+      - '6379:6379'
+      - '8001:8001'
+    volumes:
+      - redis-stack-data:/redis
+
+volumes:
+  redis-stack-data:
+  postgres_data:

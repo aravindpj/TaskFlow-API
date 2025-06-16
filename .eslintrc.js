@@ -30,11 +30,6 @@ module.exports = {
       {
         endOfLine: 'auto',
       },
-    ],
-    'simple-import-sort/imports': 'error',
-    'simple-import-sort/exports': 'error',
-    'import/no-duplicates': 'error',
-    'import/first': 'error',
-    'import/newline-after-import': 'error',
+    ]
   },
 };

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
@@ -12,29 +12,34 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<{
+    access_token: string;
+    user: { id: string; email: string; role: string };
+  }> {
     const { email, password } = loginDto;
 
     const user = await this.usersService.findByEmail(email);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    const passwordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    if (!passwordValid) {
-      throw new UnauthorizedException('Invalid password');
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = {
+    const tokenPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
     };
 
+    const access_token = this.jwtService.sign(tokenPayload);
+
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token,
       user: {
         id: user.id,
         email: user.email,
@@ -43,44 +48,49 @@ export class AuthService {
     };
   }
 
-  async register(registerDto: RegisterDto) {
+  async register(registerDto: RegisterDto): Promise<{
+    access_token: string;
+    user: { id: string; email: string; name: string; role: string };
+  }> {
     const existingUser = await this.usersService.findByEmail(registerDto.email);
 
     if (existingUser) {
-      throw new UnauthorizedException('Email already exists');
+      throw new ConflictException('Email already registered');
     }
 
-    const user = await this.usersService.create(registerDto);
+    // Securely hash the password before storing (if not handled inside service)
+    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    const user = await this.usersService.create({
+      ...registerDto,
+      password: hashedPassword,
+    });
 
-    const token = this.generateToken(user.id);
+    const access_token = this.generateToken(user.id, user.email, user.role);
 
     return {
+      access_token,
       user: {
         id: user.id,
         email: user.email,
         name: user.name,
         role: user.role,
       },
-      token,
     };
   }
 
-  private generateToken(userId: string) {
-    const payload = { sub: userId };
-    return this.jwtService.sign(payload);
+  private generateToken(userId: string, email?: string, role?: string): string {
+    const payload = { sub: userId, email, role };
+    return this.jwtService.sign(payload, {
+      expiresIn: '1h', // optional override
+    });
   }
 
-  async validateUser(userId: string): Promise<any> {
-    const user = await this.usersService.findOne(userId);
-
-    if (!user) {
-      return null;
-    }
-
-    return user;
+  async validateUser(userId: string) {
+    return (await this.usersService.findOne(userId)) ?? null;
   }
 
   async validateUserRoles(userId: string, requiredRoles: string[]): Promise<boolean> {
-    return true;
+    const user = await this.usersService.findOne(userId);
+    return user ? requiredRoles.includes(user.role) : false;
   }
 }

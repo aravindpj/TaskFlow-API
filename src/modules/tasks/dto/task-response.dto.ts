@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskStatus } from '../enums/task-status.enum';
 import { TaskPriority } from '../enums/task-priority.enum';
+import { UserResponseDto } from '../../users/dto/user-response.dto'; // Import for nested user object
 
 export class TaskResponseDto {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -24,9 +25,19 @@ export class TaskResponseDto {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
   userId: string;
 
+  @ApiProperty({ type: UserResponseDto, description: 'Associated user details' })
+  user?: UserResponseDto; // Optional, might be eager loaded or not
+
   @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
   createdAt: Date;
 
   @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
   updatedAt: Date;
+
+  constructor(partial: Partial<TaskResponseDto>) {
+    Object.assign(this, partial);
+    if (partial.user) {
+      this.user = new UserResponseDto(partial.user);
+    }
+  }
 }

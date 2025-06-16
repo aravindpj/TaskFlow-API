@@ -7,6 +7,15 @@ import { TasksModule } from '../../modules/tasks/tasks.module';
   imports: [
     BullModule.registerQueue({
       name: 'task-processing',
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: 'exponential', // Exponential backoff (1s, 2s, 4s, etc.)
+          delay: 1000, // Initial delay of 1 second
+        },
+        removeOnComplete: true, // Remove job from queue when complete
+        removeOnFail: false, // Keep failed jobs for inspection (for debugging)
+      },
     }),
     TasksModule,
   ],

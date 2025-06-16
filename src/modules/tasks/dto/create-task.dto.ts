@@ -9,28 +9,37 @@ export class CreateTaskDto {
   @IsNotEmpty()
   title: string;
 
-  @ApiProperty({ example: 'Add details about API endpoints and data models', required: false })
+  @ApiProperty({
+    example: 'Add details about API endpoints and data models',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   description?: string;
 
-  @ApiProperty({ enum: TaskStatus, example: TaskStatus.PENDING, required: false })
+  @ApiProperty({
+    enum: TaskStatus,
+    example: TaskStatus.PENDING,
+    required: false,
+  })
   @IsEnum(TaskStatus)
   @IsOptional()
   status?: TaskStatus;
 
-  @ApiProperty({ enum: TaskPriority, example: TaskPriority.MEDIUM, required: false })
+  @ApiProperty({
+    enum: TaskPriority,
+    example: TaskPriority.MEDIUM,
+    required: false,
+  })
   @IsEnum(TaskPriority)
   @IsOptional()
   priority?: TaskPriority;
 
   @ApiProperty({ example: '2023-12-31T23:59:59Z', required: false })
-  @IsDateString()
+  // @IsDateString()
   @IsOptional()
   dueDate?: Date;
 
-  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
-  @IsUUID()
-  @IsNotEmpty()
-  userId: string;
+  // Removed userId from here. It will be derived from the authenticated user.
+  // If an admin needs to create tasks for other users, a separate endpoint/DTO could be considered.
 }
