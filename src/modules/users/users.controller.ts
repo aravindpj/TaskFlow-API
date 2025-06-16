@@ -35,8 +35,8 @@ interface RequestWithUser extends Request {
 
 @ApiTags('users')
 @Controller('users')
-@UseInterceptors(ClassSerializerInterceptor)
-@UseGuards(JwtAuthGuard, RolesGuard) // Apply JwtAuthGuard and RolesGuard globally for the controller
+// @UseInterceptors(ClassSerializerInterceptor)
+// @UseGuards(JwtAuthGuard, RolesGuard) // Apply JwtAuthGuard and RolesGuard globally for the controller
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
