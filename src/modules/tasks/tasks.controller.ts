@@ -24,9 +24,6 @@ import { TaskStatus } from './enums/task-status.enum';
 import { RateLimitGuard } from '../../common/guards/rate-limit.guard'; // Adjust path
 import { RateLimit } from '../../common/decorators/rate-limit.decorator'; // Adjust path
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // Adjust path
-// import { RolesGuard } from '../../shared/guards/roles.guard'; // Adjust path
-// import { Roles } from '../../shared/decorators/roles.decorator'; // Adjust path
-// import { PaginatedResponseDto } from '../../shared/dtos/pagination.dto'; // Adjust path
 import { TaskResponseDto } from './dto/task-response.dto'; // Adjust path
 import { Request } from 'express'; // Import Request from express
 import { TaskFilterDto } from './dto/task-filter.dto';
