@@ -57,7 +57,6 @@ export class TasksController {
     @Body() createTaskDto: CreateTaskDto,
     @Req() req: RequestWithUser,
   ): Promise<TaskResponseDto> {
-    console.log('API HIT HAPPENING');
     return this.tasksService.create(createTaskDto, req.user.id); // Associate task with authenticated user
   }
 
