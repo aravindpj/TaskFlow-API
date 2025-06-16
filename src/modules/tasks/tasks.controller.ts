@@ -29,6 +29,7 @@ import { Request } from 'express'; // Import Request from express
 import { TaskFilterDto } from './dto/task-filter.dto';
 import { PaginatedResponseDto } from '@common/decorators/pagination.dto';
 import { TaskPriority } from './enums/task-priority.enum';
+import { BatchAction, BatchTaskDto } from './dto/batch-task.dto';
 
 // Extend Request type to include user details from JwtAuthGuard
 interface RequestWithUser extends Request {
@@ -56,6 +57,7 @@ export class TasksController {
     @Body() createTaskDto: CreateTaskDto,
     @Req() req: RequestWithUser,
   ): Promise<TaskResponseDto> {
+    console.log('API HIT HAPPENING');
     return this.tasksService.create(createTaskDto, req.user.id); // Associate task with authenticated user
   }
 
@@ -134,26 +136,25 @@ export class TasksController {
   @Post('batch')
   @ApiOperation({ summary: 'Batch process multiple tasks (complete or delete)' })
   @ApiResponse({ status: 200, description: 'Batch operation results' })
+  @ApiResponse({ status: 400, description: 'Invalid batch action or empty task IDs' })
   async batchProcess(
-    @Body() operations: { taskIds: string[]; action: 'complete' | 'delete' },
+    @Body() operations: BatchTaskDto, // Use the new DTO here
     @Req() req: RequestWithUser,
   ): Promise<any> {
     const { taskIds, action } = operations;
-    if (!taskIds || taskIds.length === 0) {
-      throw new BadRequestException('Task IDs array cannot be empty.');
-    }
+    // Validation for taskIds array is now handled by class-validator on BatchTaskDto
 
     const isAdmin = req.user.role === 'admin';
 
     switch (action) {
-      case 'complete':
+      case BatchAction.COMPLETE: // Use the enum
         return this.tasksService.batchUpdateStatus(
           taskIds,
-          TaskStatus.COMPLETED,
+          TaskStatus.COMPLETED, // Use TaskStatus enum
           req.user.id,
           isAdmin,
         );
-      case 'delete':
+      case BatchAction.DELETE: // Use the enum
         return this.tasksService.batchDelete(taskIds, req.user.id, isAdmin);
       default:
         throw new BadRequestException(`Unknown batch action: ${action}`);
