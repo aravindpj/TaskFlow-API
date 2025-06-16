@@ -15,8 +15,9 @@ import bullConfig from '@config/bull.config';
 import databaseConfig from '@config/database.config';
 import { MailerModule } from '@nestjs-modules/mailer';
 import mailConfig from '@config/mail.config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { RateLimitGuard } from '@common/guards/rate-limit.guard';
+import { LoggingInterceptor } from '@common/interceptors/logging.interceptor';
 
 @Module({
   imports: [
@@ -93,6 +94,10 @@ import { RateLimitGuard } from '@common/guards/rate-limit.guard';
     {
       provide: APP_GUARD,
       useClass: RateLimitGuard, // Apply globally
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
   ],
   exports: [
