@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ExpressAdapter } from '@nestjs/platform-express';
+import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -21,6 +22,8 @@ async function bootstrap() {
 
   // CORS
   app.enableCors();
+
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   // Swagger documentation
   const config = new DocumentBuilder()
