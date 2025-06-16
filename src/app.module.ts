@@ -13,13 +13,15 @@ import { CacheService } from './common/services/cache.service';
 import jwtConfig from '@config/jwt.config';
 import bullConfig from '@config/bull.config';
 import databaseConfig from '@config/database.config';
+import { MailerModule } from '@nestjs-modules/mailer';
+import mailConfig from '@config/mail.config';
 
 @Module({
   imports: [
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [jwtConfig, bullConfig, databaseConfig],
+      load: [jwtConfig, bullConfig, databaseConfig, mailConfig],
     }),
 
     // Database
@@ -63,6 +65,15 @@ import databaseConfig from '@config/database.config';
       ],
     }),
 
+    //Nodemailer
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        transport: configService.get('mail.transport'),
+        defaults: configService.get('mail.defaults'),
+      }),
+      inject: [ConfigService],
+    }),
     // Feature modules
     UsersModule,
     TasksModule,
@@ -70,7 +81,7 @@ import databaseConfig from '@config/database.config';
 
     // Queue processing modules
     TaskProcessorModule,
-    // ScheduledTasksModule,
+    ScheduledTasksModule,
   ],
   providers: [
     // Inefficient: Global cache service with no configuration options

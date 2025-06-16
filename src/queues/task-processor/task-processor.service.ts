@@ -5,7 +5,10 @@ import { Job, UnrecoverableError } from 'bullmq';
 import { TasksService } from '../../modules/tasks/tasks.service';
 import { TaskStatus } from '../../modules/tasks/enums/task-status.enum'; // Import TaskStatus for validation
 import { FindManyOptions, LessThan } from 'typeorm'; // Import for querying overdue tasks
-
+import { MailerService } from '@nestjs-modules/mailer';
+interface IMailerService {
+  sendMail(options: { to: string; subject: string; html: string }): Promise<any>;
+}
 @Injectable()
 // Inefficient implementation:
 // - No proper job batching (Addressed by example in handleOverdueTasks, and overall concurrency)
@@ -18,7 +21,10 @@ import { FindManyOptions, LessThan } from 'typeorm'; // Import for querying over
 export class TaskProcessorService extends WorkerHost {
   private readonly logger = new Logger(TaskProcessorService.name);
 
-  constructor(private readonly tasksService: TasksService) {
+  constructor(
+    private readonly tasksService: TasksService,
+    private readonly mailerService: MailerService,
+  ) {
     super();
   }
 
@@ -126,53 +132,69 @@ export class TaskProcessorService extends WorkerHost {
   }
 
   private async handleOverdueTasks(job: Job) {
-    // Inefficient implementation with no batching or chunking for large datasets (Addressed with example structure below)
     this.logger.debug('Processing overdue tasks notification.');
 
-    // --- Efficient implementation with batching/chunking for large datasets ---
-    const batchSize = 100; // Define a suitable batch size
+    const batchSize = 100;
     let offset = 0;
     let hasMoreTasks = true;
     let totalOverdueProcessed = 0;
 
-    // The implementation is deliberately basic and inefficient (Refactored below)
-    // It should be improved with proper batching and error handling (Implemented)
-
     try {
       while (hasMoreTasks) {
-        // Query tasks that are overdue and not yet completed
-        // Add proper indexing on `dueDate` and `status` for performance
+        // Ensure that tasksService.findAll loads the 'user' relation to get email/name
         const overdueTasks = await this.tasksService.findAll({
-          dueDateBefore: new Date().toISOString(), // Tasks due before now
-          status: TaskStatus.PENDING, // Only pending tasks
-          page: Math.floor(offset / batchSize) + 1, // Calculate page number based on offset
+          dueDateBefore: new Date().toISOString(),
+          status: TaskStatus.PENDING,
+          page: Math.floor(offset / batchSize) + 1,
           limit: batchSize,
         });
 
         if (overdueTasks.data.length === 0) {
-          hasMoreTasks = false; // No more overdue tasks to process
+          hasMoreTasks = false;
           break;
         }
 
-        const taskIdsToNotify: string[] = [];
+        // --- Refactored: Directly send email for each overdue task ---
         for (const task of overdueTasks.data) {
-          taskIdsToNotify.push(task.id);
-          // TODO: Implement actual notification logic here for each task
-          // e.g., send email, push notification, or add to another specific notification queue
-          this.logger.verbose(`Marking task ${task.id} as overdue for notification.`);
+          if (task.user && task.user.email) {
+            try {
+              const emailSubject = `Action Required: Your Task "${task.title}" is Overdue!`;
+              const emailBody = `<p>Dear ${task.user.name || 'User'},</p>
+                               <p>Your task <strong>"${task.title}"</strong> (ID: ${task.id}) was due on ${task.dueDate.toLocaleDateString()}.</p>
+                               <p>Please log in to your dashboard to update its status</p>
+                               <p>Thank you,</p>
+                               <p>Your Task Management Team</p>`;
+
+              await this.mailerService.sendMail({
+                to: task.user.email,
+                subject: emailSubject,
+                html: emailBody,
+              });
+              this.logger.verbose(
+                `Directly sent overdue email for task ${task.id} to ${task.user.email}`,
+              );
+            } catch (emailError) {
+              const err = emailError as Error;
+              this.logger.error(
+                `Failed to send email directly for task ${task.id} to ${task.user.email}: ${err.message}`,
+                err.stack,
+              );
+            }
+          } else {
+            this.logger.warn(
+              `Task ${task.id} has no associated user or email for notification. Skipping email.`,
+            );
+          }
         }
+        // --- End Refactored section ---
 
-        // Example: Update the status of processed tasks or log their processing
-        // This is where you might call another service to send notifications
-        // For simplicity, we just log and count.
-        totalOverdueProcessed += taskIdsToNotify.length;
-        this.logger.log(`Processed batch of ${taskIdsToNotify.length} overdue tasks.`);
+        totalOverdueProcessed += overdueTasks.data.length;
+        this.logger.log(`Processed batch of ${overdueTasks.data.length} overdue tasks.`);
 
-        // If the number of tasks fetched is less than batchSize, it means we are at the end
         if (overdueTasks.data.length < batchSize) {
           hasMoreTasks = false;
         } else {
-          offset += batchSize; // Move to the next batch
+          offset += batchSize;
         }
       }
       this.logger.log(
@@ -184,7 +206,6 @@ export class TaskProcessorService extends WorkerHost {
       };
     } catch (error) {
       const err = error as Error;
-
       this.logger.error(
         `Error during overdue tasks processing job ${job.id}: ${err.message}`,
         err.stack,
