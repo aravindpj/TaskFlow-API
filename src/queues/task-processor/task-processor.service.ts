@@ -4,11 +4,8 @@ import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job, UnrecoverableError } from 'bullmq';
 import { TasksService } from '../../modules/tasks/tasks.service';
 import { TaskStatus } from '../../modules/tasks/enums/task-status.enum'; // Import TaskStatus for validation
-import { FindManyOptions, LessThan } from 'typeorm'; // Import for querying overdue tasks
 import { MailerService } from '@nestjs-modules/mailer';
-interface IMailerService {
-  sendMail(options: { to: string; subject: string; html: string }): Promise<any>;
-}
+
 @Injectable()
 // Inefficient implementation:
 // - No proper job batching (Addressed by example in handleOverdueTasks, and overall concurrency)
@@ -140,6 +137,7 @@ export class TaskProcessorService extends WorkerHost {
     let totalOverdueProcessed = 0;
 
     try {
+      //o(n^2) i need to refactor here
       while (hasMoreTasks) {
         // Ensure that tasksService.findAll loads the 'user' relation to get email/name
         const overdueTasks = await this.tasksService.findAll({
@@ -158,12 +156,18 @@ export class TaskProcessorService extends WorkerHost {
         for (const task of overdueTasks.data) {
           if (task.user && task.user.email) {
             try {
+              // i need to make this as separate email service
               const emailSubject = `Action Required: Your Task "${task.title}" is Overdue!`;
-              const emailBody = `<p>Dear ${task.user.name || 'User'},</p>
-                               <p>Your task <strong>"${task.title}"</strong> (ID: ${task.id}) was due on ${task.dueDate.toLocaleDateString()}.</p>
-                               <p>Please log in to your dashboard to update its status</p>
-                               <p>Thank you,</p>
-                               <p>Your Task Management Team</p>`;
+              const emailBody = `
+              <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
+                <div style="max-width: 600px; background-color: #fff; padding: 20px; border-radius: 6px; margin: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                  <p style="margin-bottom: 16px;">Dear ${task.user.name || 'User'},</p>
+                  <p style="margin-bottom: 16px;">This is a friendly reminder that your task <strong>"${task.title}"</strong> (ID: ${task.id}) was due on <strong>${task.dueDate.toLocaleDateString()}</strong>.</p>
+                  <p style="margin-bottom: 16px;">Please take the necessary action at your convenience.</p>
+                  <p style="margin-top: 32px;">Thank you,<br/>Your Task Management Team</p>
+                </div>
+               </div>
+            `;
 
               await this.mailerService.sendMail({
                 to: task.user.email,
