@@ -15,6 +15,8 @@ import bullConfig from '@config/bull.config';
 import databaseConfig from '@config/database.config';
 import { MailerModule } from '@nestjs-modules/mailer';
 import mailConfig from '@config/mail.config';
+import { APP_GUARD } from '@nestjs/core';
+import { RateLimitGuard } from '@common/guards/rate-limit.guard';
 
 @Module({
   imports: [
@@ -87,6 +89,11 @@ import mailConfig from '@config/mail.config';
     // Inefficient: Global cache service with no configuration options
     // This creates a single in-memory cache instance shared across all modules
     CacheService,
+
+    {
+      provide: APP_GUARD,
+      useClass: RateLimitGuard, // Apply globally
+    },
   ],
   exports: [
     // Exporting the cache service makes it available to other modules
